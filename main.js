@@ -1,16 +1,8 @@
-// main.js - Telegram Button Maker Bot
+// main.js - Telegram Button Maker Bot for Deno Deploy
 import { Bot, InlineKeyboard, session } from "https://deno.land/x/grammy@v1.18.1/mod.ts";
 
-/**
- * @typedef {Object} SessionData
- * @property {boolean} buttonCreationMode - Whether the user is currently creating buttons
- * @property {string|null} pendingMessage - The message text waiting for buttons
- * @property {Array<{text: string, url: string}>} buttons - Array of buttons for the message
- */
-
-// Bot token directly in code (hardcoded as requested)
+// Bot token directly in code
 const token = "7958850882:AAEyzWIpIO1AT0QcDEE8uZiYAP3fahvR5fc";
-
 const bot = new Bot(token);
 
 // Set up session for storing user state
@@ -32,6 +24,18 @@ bot.command("start", async (ctx) => {
     "3. Then add buttons using: /addbutton Button Text | https://example.com\n" +
     "4. When you're done, send /done to get your message with buttons\n\n" +
     "You can cancel anytime with /cancel"
+  );
+});
+
+// Help command
+bot.command("help", async (ctx) => {
+  await ctx.reply(
+    "Button Maker Bot Commands:\n\n" +
+    "/create - Start creating a new message with buttons\n" +
+    "/addbutton Text | URL - Add a button to your message\n" +
+    "/done - Finish and receive your message with buttons\n" +
+    "/cancel - Cancel the current message creation\n" +
+    "/help - Show this help message"
   );
 });
 
@@ -149,7 +153,7 @@ bot.on("message:text", async (ctx) => {
 
   // Default response for text that doesn't match any command
   await ctx.reply(
-    "I don't understand that command. Send /start for help."
+    "I don't understand that command. Send /start or /help for assistance."
   );
 });
 
@@ -161,22 +165,28 @@ bot.catch((err) => {
 // Handle incoming webhook requests for Deno Deploy
 Deno.serve(async (req) => {
   const url = new URL(req.url);
+  console.log(`Received request to: ${url.pathname}`);
   
-  // If this is the root path, provide a simple status message
-  if (url.pathname === "/") {
-    return new Response("Telegram Button Maker Bot is running!", { status: 200 });
+  // Handle the specific SetWebhook path
+  if (url.pathname === "/SetWebhook") {
+    if (req.method === "POST") {
+      try {
+        const update = await req.json();
+        console.log("Received update:", JSON.stringify(update).slice(0, 200) + "...");
+        await bot.handleUpdate(update);
+        return new Response("OK", { status: 200 });
+      } catch (error) {
+        console.error("Error processing update:", error);
+        return new Response(`Error processing update: ${error.message}`, { status: 500 });
+      }
+    } else {
+      return new Response("Webhook endpoint is working", { status: 200 });
+    }
   }
   
-  // Process bot updates sent to the secret path
-  if (req.method === "POST") {
-    try {
-      const update = await req.json();
-      await bot.handleUpdate(update);
-      return new Response("OK", { status: 200 });
-    } catch (error) {
-      console.error("Error processing update:", error);
-      return new Response("Error processing update", { status: 500 });
-    }
+  // Root path returns status
+  if (url.pathname === "/") {
+    return new Response("Telegram Button Maker Bot is running! Set webhook to /SetWebhook path.", { status: 200 });
   }
   
   // Default response for other requests
