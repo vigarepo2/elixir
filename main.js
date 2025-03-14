@@ -2,7 +2,7 @@
 // A single file containing all functionalities from A to Z
 
 // Core configuration
-const TOKEN = "YOUR_BOT_TOKEN";
+const TOKEN = "7958850882:AAEyzWIpIO1AT0QcDEE8uZiYAP3fahvR5fc";
 const API_URL = `https://api.telegram.org/bot${TOKEN}`;
 const FILE_API_URL = `https://api.telegram.org/file/bot${TOKEN}`;
 
