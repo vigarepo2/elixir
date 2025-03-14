@@ -1,23 +1,38 @@
-import { Bot, webhookCallback } from "https://deno.land/x/grammy@v1.21.1/mod.ts";
+// @deno-types="npm:@types/node-telegram-bot-api@0.64.7"
+import TelegramBot from "node-telegram-bot-api";
 import { serve } from "https://deno.land/std@0.192.0/http/server.ts";
 
-const token = Deno.env.get("BOT_TOKEN");
-if (!token) throw new Error("Missing BOT_TOKEN");
+const token = Deno.env.get("BOT_TOKEN") || "";
+const bot = new TelegramBot(token, { webHook: true });
 
-const bot = new Bot(token);
+// Set webhook path
+const webhookUrl = Deno.env.get("DENO_DEPLOYMENT_URL") + "/webhook";
 
-// Basic commands
-bot.command("start", (ctx) => ctx.reply("Welcome! I'm a Deno Deploy bot"));
-bot.on("message:text", (ctx) => ctx.reply(`Echo: ${ctx.message.text}`));
+// Initialize webhook
+bot.setWebHook(webhookUrl);
 
-// Handle webhook requests
-const handleUpdate = webhookCallback(bot, "std/http");
+// Bot commands
+bot.onText(/\/start/, (msg) => {
+  bot.sendMessage(msg.chat.id, "🟢 Bot activated!");
+});
 
-serve(async (req) => {
-  try {
-    return await handleUpdate(req);
-  } catch (err) {
-    console.error(err);
-    return new Response(err.message, { status: 500 });
+bot.on("message", (msg) => {
+  if (msg.text && !msg.text.startsWith("/")) {
+    bot.sendMessage(msg.chat.id, `📤 Echo: ${msg.text}`);
   }
+});
+
+// HTTP server
+serve(async (req) => {
+  if (req.method === "POST" && new URL(req.url).pathname === "/webhook") {
+    try {
+      const update = await req.json();
+      bot.processUpdate(update);
+      return new Response("OK");
+    } catch (err) {
+      console.error("Error:", err);
+      return new Response("Error", { status: 500 });
+    }
+  }
+  return new Response("Telegram Bot Server");
 });
