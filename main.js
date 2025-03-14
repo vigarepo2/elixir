@@ -1,17 +1,40 @@
-import { Bot } from "https://deno.land/x/grammy@v1.33.0/mod.ts";
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
-// Get the bot token from environment variable
-const token = Deno.env.get("BOT_TOKEN");
-if (!token) throw new Error("BOT_TOKEN is not set");
+const BOT_TOKEN = Deno.env.get("BOT_TOKEN");
+if (!BOT_TOKEN) throw new Error("BOT_TOKEN is not set");
 
-// Create a bot instance
-const bot = new Bot(token);
+const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
-// Handle the /start command
-bot.command("start", (ctx) => ctx.reply("Hello! I'm a simple Telegram bot."));
+async function handleUpdate(update) {
+  const { message } = update;
+  if (message?.text) {
+    const chatId = message.chat.id;
+    let responseText = "";
 
-// Handle text messages
-bot.on("message:text", (ctx) => ctx.reply("You said: " + ctx.message.text));
+    if (message.text === "/start") {
+      responseText = "Hello! I'm a simple Telegram bot.";
+    } else {
+      responseText = `You said: ${message.text}`;
+    }
 
-// Start the bot
-bot.start();
+    await fetch(`${TELEGRAM_API}/sendMessage`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: responseText,
+      }),
+    });
+  }
+}
+
+serve(async (req) => {
+  if (req.method === "POST") {
+    const update = await req.json();
+    await handleUpdate(update);
+    return new Response("OK", { status: 200 });
+  }
+  return new Response("Hello, this is a Telegram bot!", { status: 200 });
+});
