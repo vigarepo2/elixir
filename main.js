@@ -1,12 +1,12 @@
-// main.ts - Telegram Button Maker Bot
+// main.js - Telegram Button Maker Bot
 import { Bot, InlineKeyboard, session } from "https://deno.land/x/grammy@v1.18.1/mod.ts";
 
-// Define session structure
-interface SessionData {
-  buttonCreationMode: boolean;
-  pendingMessage: string | null;
-  buttons: Array<{ text: string; url: string }>;
-}
+/**
+ * @typedef {Object} SessionData
+ * @property {boolean} buttonCreationMode - Whether the user is currently creating buttons
+ * @property {string|null} pendingMessage - The message text waiting for buttons
+ * @property {Array<{text: string, url: string}>} buttons - Array of buttons for the message
+ */
 
 // Initialize bot with token from environment
 const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
@@ -16,7 +16,7 @@ const bot = new Bot(token);
 
 // Set up session for storing user state
 bot.use(session({
-  initial: (): SessionData => ({
+  initial: () => ({
     buttonCreationMode: false,
     pendingMessage: null,
     buttons: [],
