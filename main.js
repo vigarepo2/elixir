@@ -8,9 +8,8 @@ import { Bot, InlineKeyboard, session } from "https://deno.land/x/grammy@v1.18.1
  * @property {Array<{text: string, url: string}>} buttons - Array of buttons for the message
  */
 
-// Initialize bot with token from environment
-const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
-if (!token) throw new Error("TELEGRAM_BOT_TOKEN is unset");
+// Bot token directly in code (hardcoded as requested)
+const token = "7958850882:AAEyzWIpIO1AT0QcDEE8uZiYAP3fahvR5fc";
 
 const bot = new Bot(token);
 
@@ -159,40 +158,27 @@ bot.catch((err) => {
   console.error("Bot error:", err);
 });
 
-// Determine if we're in production or development
-const isProduction = Deno.env.get("DENO_ENV") === "production";
-
-if (isProduction) {
-  // Production: Set up webhook for Deno Deploy
-  const webhookUrl = Deno.env.get("WEBHOOK_URL");
-  if (!webhookUrl) {
-    throw new Error("WEBHOOK_URL is required in production mode");
+// Handle incoming webhook requests for Deno Deploy
+Deno.serve(async (req) => {
+  const url = new URL(req.url);
+  
+  // If this is the root path, provide a simple status message
+  if (url.pathname === "/") {
+    return new Response("Telegram Button Maker Bot is running!", { status: 200 });
   }
   
-  // Set the webhook with Telegram
-  bot.api.setWebhook(`${webhookUrl}/${token}`);
-  
-  // Handle webhook requests
-  Deno.serve(async (req) => {
-    const url = new URL(req.url);
-    
-    // Only process POST requests to the webhook path
-    if (req.method === "POST" && url.pathname === `/${token}`) {
-      try {
-        const update = await req.json();
-        await bot.handleUpdate(update);
-        return new Response("OK", { status: 200 });
-      } catch (error) {
-        console.error("Error processing update:", error);
-        return new Response("Error processing update", { status: 500 });
-      }
+  // Process bot updates sent to the secret path
+  if (req.method === "POST") {
+    try {
+      const update = await req.json();
+      await bot.handleUpdate(update);
+      return new Response("OK", { status: 200 });
+    } catch (error) {
+      console.error("Error processing update:", error);
+      return new Response("Error processing update", { status: 500 });
     }
-    
-    // Default response for other requests
-    return new Response("Telegram Button Maker Bot is running", { status: 200 });
-  });
-} else {
-  // Development: Use long polling
-  console.log("Starting bot in development mode with long polling");
-  bot.start();
-}
+  }
+  
+  // Default response for other requests
+  return new Response("Not found", { status: 404 });
+});
