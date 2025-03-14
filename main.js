@@ -1,38 +1,36 @@
-// @deno-types="npm:@types/node-telegram-bot-api@0.64.7"
-import TelegramBot from "node-telegram-bot-api";
-import { serve } from "https://deno.land/std@0.192.0/http/server.ts";
+import { Bot, webhookCallback } from "grammy";
+import { serve } from "http";
 
-const token = Deno.env.get("BOT_TOKEN") || "";
-const bot = new TelegramBot(token, { webHook: true });
+// Initialize bot with environment token
+const bot = new Bot(Deno.env.get("BOT_TOKEN") || "");
 
-// Set webhook path
-const webhookUrl = Deno.env.get("DENO_DEPLOYMENT_URL") + "/webhook";
+// Basic commands
+bot.command("start", (ctx) => 
+  ctx.reply("🚀 Welcome! I'm a Deno Deploy powered bot\n" +
+            "Try sending any message!"));
 
-// Initialize webhook
-bot.setWebHook(webhookUrl);
-
-// Bot commands
-bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, "🟢 Bot activated!");
+// Echo handler
+bot.on("message:text", (ctx) => {
+  const text = ctx.message.text;
+  ctx.reply(`🔊 Echo: ${text}`);
 });
 
-bot.on("message", (msg) => {
-  if (msg.text && !msg.text.startsWith("/")) {
-    bot.sendMessage(msg.chat.id, `📤 Echo: ${msg.text}`);
-  }
+// Error handling
+bot.catch((err) => {
+  console.error(`Error in bot:`, err);
 });
 
-// HTTP server
+// Webhook configuration
+const handleWebhook = webhookCallback(bot, "std/http");
+
+// HTTP server setup
 serve(async (req) => {
-  if (req.method === "POST" && new URL(req.url).pathname === "/webhook") {
-    try {
-      const update = await req.json();
-      bot.processUpdate(update);
-      return new Response("OK");
-    } catch (err) {
-      console.error("Error:", err);
-      return new Response("Error", { status: 500 });
-    }
+  try {
+    return await handleWebhook(req);
+  } catch (err) {
+    console.error("Server error:", err);
+    return new Response(err.message, { status: 500 });
   }
-  return new Response("Telegram Bot Server");
 });
+
+console.log("🤖 Bot server started successfully");
