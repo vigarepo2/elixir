@@ -1,5 +1,10 @@
 {
+  "tasks": {
+    "start": "deno run --allow-env --allow-net --allow-read main.ts"
+  },
   "imports": {
-    "grammy": "https://deno.land/x/grammy@v1.21.1/mod.ts"
-  }
+    "node-telegram-bot-api": "npm:node-telegram-bot-api@0.66.0",
+    "types": "npm:@types/node-telegram-bot-api@0.64.7"
+  },
+  "unstable": ["npm", "kv"]
 }
