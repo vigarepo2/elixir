@@ -1,6 +1,6 @@
 {
-  "compilerOptions": {
-    "allowJs": true,
-    "checkJs": false
-  }
+  "tasks": {
+    "start": "deno run --allow-net --allow-env main.js"
+  },
+  "importMap": "./import_map.json"
 }
